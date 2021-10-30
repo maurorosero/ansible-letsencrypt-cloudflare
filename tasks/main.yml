@@ -125,7 +125,28 @@
   retries: 3
   delay: 10
   until: letsencrypt_validation is success
-  when: letsencrypt_challenge['challenge_data'] is defined
+  when: letsencrypt_challenge['challenge_data'] is defined and not include_intermediate
+  tags:
+    - web-api
+
+- name: validate the Let's Encrypt challenge with fullchain an intermediate certs
+  acme_certificate:
+    acme_directory: "{{ letsencrypt_acme_directory }}"
+    acme_version: "{{ letsencrypt_acme_version }}"
+    challenge: dns-01
+    account_key: "{{ letsencrypt_key_directory + '/' + letsencrypt_key_filename }}"
+    csr: "{{ certificate_directory + '/' + csr_filename }}"
+    dest: "{{ certificate_directory + '/' + crt_filename }}"
+    fullchain: "{{ certificate_directory + '/' + fullchain_filename }}"
+    chain: "{{ certificate_directory + '/' + intermediate_filename }}"
+    account_email: "{{ letsencrypt_email }}"
+    data: "{{ letsencrypt_challenge }}"
+    terms_agreed: yes
+  register: letsencrypt_validation
+  retries: 3
+  delay: 10
+  until: letsencrypt_validation is success
+  when: letsencrypt_challenge['challenge_data'] is defined and include_intermediate
   tags:
     - web-api
 
@@ -142,36 +163,6 @@
   when: letsencrypt_challenge['challenge_data'] is defined
   tags:
     - web-api
-
-- name: download the Let's Encrypt intermediate CA
-  get_url:
-    url: https://letsencrypt.org/certs/lets-encrypt-r3-cross-signed.pem
-    dest: "{{ certificate_directory + '/' + intermediate_filename }}"
-    owner: "{{ certificate_files_owner }}"
-    group: "{{ certificate_files_group }}"
-    mode: "{{ certificate_files_mode }}"
-  when: include_intermediate
-
-- name: get content of the certificate
-  command: "cat {{ certificate_directory }}/{{ crt_filename }}"
-  register: certificate_content
-  changed_when: false
-  when: include_intermediate
-
-- name: get content of the intermediate CA
-  command: "cat {{ certificate_directory }}/{{ intermediate_filename }}"
-  register: intermediate_content
-  changed_when: false
-  when: include_intermediate
-
-- name: create a file with the certificate and intermediate CA concatenated
-  copy:
-    content: "{{ certificate_content['stdout'] + '\n' + intermediate_content['stdout'] + '\n' }}"
-    dest: "{{ certificate_directory + '/' + fullchain_filename }}"
-    owner: "{{ certificate_files_owner }}"
-    group: "{{ certificate_files_group }}"
-    mode: "{{ certificate_files_mode }}"
-  when: include_intermediate
 
 - name: Ensure destination folders exist for certificate copy
   file:
