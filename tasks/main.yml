@@ -91,6 +91,7 @@
     account_email: "{{ letsencrypt_email }}"
     remaining_days: "{{ certificate_remaining_days }}"
     terms_agreed: yes
+    force: yes
   register: letsencrypt_challenge
   tags:
     - web-api
@@ -120,6 +121,7 @@
     dest: "{{ certificate_directory + '/' + crt_filename }}"
     account_email: "{{ letsencrypt_email }}"
     data: "{{ letsencrypt_challenge }}"
+    force: yes
     terms_agreed: yes
   register: letsencrypt_validation
   retries: 3
